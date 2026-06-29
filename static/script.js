@@ -1,6 +1,7 @@
 /* ─── State ────────────────────────────────────────────────────── */
 let history = [];   // [{role, content}, ...]
 let isLoading = false;
+let adminPassword = sessionStorage.getItem('adminPassword') || '';
 
 /* ─── Panel switching ───────────────────────────────────────────── */
 function showPanel(name) {
@@ -10,7 +11,50 @@ function showPanel(name) {
   document.getElementById('btnDocs').classList.toggle('active', name === 'docs');
   document.getElementById('panelTitle').textContent =
     name === 'chat' ? 'Ask about Philip Jaisohn' : 'Knowledge Base Documents';
-  if (name === 'docs') loadDocuments();
+  if (name === 'docs') {
+    if (adminPassword) {
+      showDocsContent();
+    } else {
+      showDocsLock();
+    }
+  }
+}
+
+function showDocsLock() {
+  document.getElementById('docsLock').classList.remove('hidden');
+  document.getElementById('docsContent').classList.add('hidden');
+  document.getElementById('lockError').classList.add('hidden');
+  document.getElementById('adminPassword').value = '';
+  setTimeout(() => document.getElementById('adminPassword').focus(), 50);
+}
+
+function showDocsContent() {
+  document.getElementById('docsLock').classList.add('hidden');
+  document.getElementById('docsContent').classList.remove('hidden');
+  loadDocuments();
+}
+
+async function submitPassword(e) {
+  e.preventDefault();
+  const input = document.getElementById('adminPassword');
+  const pw = input.value;
+
+  // Verify against the backend
+  const res = await fetch('/api/documents/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify({}),
+  });
+
+  if (res.ok) {
+    adminPassword = pw;
+    sessionStorage.setItem('adminPassword', pw);
+    showDocsContent();
+  } else {
+    document.getElementById('lockError').classList.remove('hidden');
+    input.value = '';
+    input.focus();
+  }
 }
 
 function toggleSidebar() {
@@ -183,7 +227,10 @@ function renderDocuments(docs) {
 async function deleteDocument(docId) {
   if (!confirm('Remove this document from the knowledge base?')) return;
   try {
-    const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/documents/${docId}`, {
+      method: 'DELETE',
+      headers: { 'X-Admin-Password': adminPassword },
+    });
     if (res.ok) {
       document.getElementById(`doc-${docId}`)?.remove();
       if (!document.querySelector('.doc-item')) {
@@ -232,7 +279,11 @@ async function uploadFiles(files) {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const res = await fetch('/api/ingest', { method: 'POST', body: fd });
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'X-Admin-Password': adminPassword },
+        body: fd,
+      });
       const data = await res.json();
       if (!res.ok) {
         alert(`Error uploading "${file.name}": ${data.error}`);

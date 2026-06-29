@@ -83,7 +83,21 @@
 
       <!-- Documents panel -->
       <section class="panel hidden" id="docsPanel">
-        <div class="docs-content">
+        <!-- Password gate -->
+        <div class="docs-lock" id="docsLock">
+          <div class="lock-card">
+            <div class="lock-icon">&#128274;</div>
+            <h2 class="lock-title">Admin Access Required</h2>
+            <p class="lock-sub">Enter the password to manage knowledge base documents.</p>
+            <form class="lock-form" id="lockForm" onsubmit="submitPassword(event)">
+              <input type="password" id="adminPassword" class="lock-input" placeholder="Password" autocomplete="current-password" />
+              <button type="submit" class="lock-btn">Unlock</button>
+            </form>
+            <p class="lock-error hidden" id="lockError">Incorrect password. Please try again.</p>
+          </div>
+        </div>
+
+        <div class="docs-content hidden" id="docsContent">
           <h2 class="docs-heading">Knowledge Base</h2>
           <p class="docs-sub">Upload documents about Philip Jaisohn to improve the chatbot's accuracy. Supported formats: PDF, DOCX, TXT, MD.</p>
 

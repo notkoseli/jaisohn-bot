@@ -15,6 +15,15 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md"}
 MAX_UPLOAD_MB = 50
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
 
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "jaisohncenter")
+
+
+def _check_admin():
+    provided = request.headers.get("X-Admin-Password", "")
+    if provided != ADMIN_PASSWORD:
+        return jsonify({"error": "Unauthorized"}), 401
+    return None
+
 
 @app.route("/")
 def index():
@@ -35,6 +44,14 @@ def chat():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/documents/verify", methods=["POST"])
+def verify_password():
+    err = _check_admin()
+    if err:
+        return err
+    return jsonify({"ok": True})
+
+
 @app.route("/api/documents", methods=["GET"])
 def list_documents():
     try:
@@ -46,6 +63,9 @@ def list_documents():
 
 @app.route("/api/documents/<doc_id>", methods=["DELETE"])
 def delete_document(doc_id):
+    err = _check_admin()
+    if err:
+        return err
     try:
         deleted = chatbot.delete_document(doc_id)
         return jsonify({"deleted_chunks": deleted})
@@ -55,6 +75,9 @@ def delete_document(doc_id):
 
 @app.route("/api/ingest", methods=["POST"])
 def ingest_document():
+    err = _check_admin()
+    if err:
+        return err
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
