@@ -10,7 +10,24 @@ An AI-powered chatbot for the Philip Jaisohn Memorial Foundation that answers qu
 - **RAG pipeline** — answers are grounded in your uploaded source material
 - **Claude AI** — powered by Anthropic's Claude Haiku model
 
-## Setup
+## Deployment (Railway — recommended)
+
+1. Push this repo to GitHub
+2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+3. Select this repository — Railway detects the `Dockerfile` automatically
+4. Go to **Variables** and add: `ANTHROPIC_API_KEY=your_key_here`
+5. Add a **Volume** (under the service's Settings → Volumes): mount path `/app/chroma_db` so uploaded documents persist across deploys
+
+Railway gives you a public URL. Done.
+
+## Deployment (Render)
+
+1. Push this repo to GitHub
+2. Go to [render.com](https://render.com) → **New** → **Web Service** → connect your repo
+3. Render reads `render.yaml` automatically and creates a persistent disk for the vector database
+4. Add the `ANTHROPIC_API_KEY` environment variable in the Render dashboard
+
+## Local development
 
 ### 1. Install dependencies
 
