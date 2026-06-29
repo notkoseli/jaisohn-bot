@@ -10,49 +10,46 @@ An AI-powered chatbot for the Philip Jaisohn Memorial Foundation that answers qu
 - **RAG pipeline** — answers are grounded in your uploaded source material
 - **Claude AI** — powered by Anthropic's Claude Haiku model
 
-## Deployment (Railway — recommended)
+## Prerequisites — API Keys
+
+You need three API keys (all have free tiers):
+
+| Service | Purpose | Sign up |
+|---|---|---|
+| **Anthropic** | Claude AI responses | console.anthropic.com |
+| **Voyage AI** | Document embeddings | dash.voyageai.com |
+| **Pinecone** | Vector database | app.pinecone.io |
+
+## Deployment (Vercel)
 
 1. Push this repo to GitHub
-2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-3. Select this repository — Railway detects the `Dockerfile` automatically
-4. Go to **Variables** and add: `ANTHROPIC_API_KEY=your_key_here`
-5. Add a **Volume** (under the service's Settings → Volumes): mount path `/app/chroma_db` so uploaded documents persist across deploys
+2. Go to [vercel.com](https://vercel.com) → **New Project** → import the repo
+3. Under **Environment Variables**, add:
+   - `ANTHROPIC_API_KEY`
+   - `VOYAGE_API_KEY`
+   - `PINECONE_API_KEY`
+   - `PINECONE_INDEX_NAME` = `jaisohn`
+4. Click **Deploy**
 
-Railway gives you a public URL. Done.
+The Pinecone index is created automatically on first document upload.
 
-## Deployment (Render)
+## Deployment (Railway / Render)
 
-1. Push this repo to GitHub
-2. Go to [render.com](https://render.com) → **New** → **Web Service** → connect your repo
-3. Render reads `render.yaml` automatically and creates a persistent disk for the vector database
-4. Add the `ANTHROPIC_API_KEY` environment variable in the Render dashboard
+`Dockerfile`, `railway.json`, and `render.yaml` are also included if you prefer those platforms. No code changes needed — just add the same three environment variables.
 
 ## Local development
-
-### 1. Install dependencies
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-### 2. Configure environment
-
-```bash
 cp .env.example .env
-# Edit .env and add your Anthropic API key
-```
+# Fill in all three API keys in .env
 
-Get an API key at https://console.anthropic.com
-
-### 3. Run the app
-
-```bash
 python app.py
+# Open http://localhost:5000
 ```
-
-Open http://localhost:5000 in your browser.
 
 ## Adding Documents
 
@@ -63,26 +60,23 @@ Open http://localhost:5000 in your browser.
 
 ### Via the command line (bulk ingestion)
 ```bash
-# Single file
-python ingest.py path/to/document.pdf
-
-# Entire folder
-python ingest.py documents/
+python ingest.py documents/          # ingest entire folder
+python ingest.py path/to/file.pdf   # single file
 ```
-
-Drop your documents into the `documents/` folder and run the command above to index them all at once.
 
 ## How It Works
 
-1. **Ingestion** — documents are split into overlapping text chunks and embedded using `sentence-transformers/all-MiniLM-L6-v2`
-2. **Retrieval** — when a user asks a question, the most relevant chunks are retrieved from ChromaDB using semantic similarity search
-3. **Generation** — retrieved context is injected into the system prompt and Claude generates a grounded answer
+1. **Ingestion** — documents are chunked and embedded via Voyage AI's `voyage-3` model, then stored in Pinecone
+2. **Retrieval** — the user's question is embedded and the closest chunks are retrieved from Pinecone using cosine similarity
+3. **Generation** — retrieved chunks are injected into Claude's context and it generates a grounded answer
 
 ## Environment Variables
 
-| Variable | Default | Description |
+| Variable | Required | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | *required* | Your Anthropic API key |
-| `PORT` | `5000` | Port to run the server on |
-| `FLASK_DEBUG` | `false` | Enable Flask debug mode |
-| `CHROMA_PATH` | `./chroma_db` | Path to store the vector database |
+| `ANTHROPIC_API_KEY` | yes | Anthropic API key |
+| `VOYAGE_API_KEY` | yes | Voyage AI API key for embeddings |
+| `PINECONE_API_KEY` | yes | Pinecone API key |
+| `PINECONE_INDEX_NAME` | yes (default: `jaisohn`) | Pinecone index name |
+| `PORT` | no (default: `5000`) | Server port |
+| `FLASK_DEBUG` | no (default: `false`) | Enable debug mode |
